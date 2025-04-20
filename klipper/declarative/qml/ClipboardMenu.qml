@@ -164,7 +164,7 @@ PlasmaComponents3.ScrollView {
 
                 KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
                 KeyNavigation.down: menuListView.count > 0 ? menuListView : null
-                KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : null
+                KeyNavigation.right: starredOnlyButton.visible ? starredOnlyButton : (prioritizeStarredButton.visible ? prioritizeStarredButton : (clearHistoryButton.visible ? clearHistoryButton : null))
                 Keys.onDownPressed: event => {
                     clipboardMenu.view.incrementCurrentIndex();
                     menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
@@ -183,6 +183,64 @@ PlasmaComponents3.ScrollView {
             }
 
             PlasmaComponents3.ToolButton {
+                id: starredOnlyButton
+                visible: true // Always visible or based on some condition?
+                checkable: true
+                checked: clipboardMenu.model.starredOnly
+                onCheckedChanged: clipboardMenu.model.starredOnly = checked
+
+                icon.name: "view-filter-symbolic" // Use appropriate icon
+                display: PlasmaComponents3.AbstractButton.IconOnly
+                text: i18nd("klipper", "Show Only Starred Items")
+
+                KeyNavigation.left: filter
+                KeyNavigation.right: prioritizeStarredButton.visible ? prioritizeStarredButton : clearHistoryButton.visible ? clearHistoryButton : null
+                // Add Keys.onDownPressed similar to clearHistoryButton if needed
+                Keys.onDownPressed: {
+                    if (menuListView.count > 0) {
+                        clipboardMenu.view.currentIndex = 0; // Go to first item
+                        menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
+                        menuListView.forceActiveFocus(Qt.TabFocusReason)
+                        KeyNavigation.preventDefault() // Prevent default navigation
+                    }
+                }
+
+
+                PlasmaComponents3.ToolTip {
+                    text: starredOnlyButton.text
+                }
+            }
+
+            PlasmaComponents3.ToolButton {
+                id: prioritizeStarredButton
+                visible: true // Always visible or based on some condition?
+                checkable: true
+                checked: clipboardMenu.model.starredPrioritized
+                onCheckedChanged: clipboardMenu.model.starredPrioritized = checked
+
+                icon.name: "view-sort-symbolic" // Or another suitable icon
+                display: PlasmaComponents3.AbstractButton.IconOnly
+                text: i18nd("klipper", "Prioritize Starred Items")
+
+                KeyNavigation.left: starredOnlyButton
+                KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : null
+                // Add Keys.onDownPressed similar to clearHistoryButton if needed
+                Keys.onDownPressed: {
+                    if (menuListView.count > 0) {
+                        clipboardMenu.view.currentIndex = 0; // Go to first item
+                        menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
+                        menuListView.forceActiveFocus(Qt.TabFocusReason)
+                        KeyNavigation.preventDefault() // Prevent default navigation
+                    }
+                }
+
+                PlasmaComponents3.ToolTip {
+                    text: prioritizeStarredButton.text
+                }
+            }
+
+
+            PlasmaComponents3.ToolButton {
                 id: clearHistoryButton
                 visible: clipboardMenu.showsClearHistoryButton
 
@@ -191,6 +249,7 @@ PlasmaComponents3.ScrollView {
                 display: PlasmaComponents3.AbstractButton.IconOnly
                 text: i18nd("klipper", "Clear History")
 
+                KeyNavigation.left: prioritizeStarredButton.visible ? prioritizeStarredButton : starredOnlyButton
                 Keys.onDownPressed: { // can't KeyNavigation or Up from the ListView goes here
                     if (menuListView.count > 0) {
                         clipboardMenu.view.incrementCurrentIndex();
