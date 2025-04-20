@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <QIdentityProxyModel>
+#include <QSortFilterProxyModel>
 #include <qqmlregistration.h>
 
 class HistoryModel;
@@ -14,7 +14,7 @@ class HistoryModel;
 /**
  * This class provides a view for history clip items in QML
  **/
-class DeclarativeHistoryModel : public QIdentityProxyModel
+class DeclarativeHistoryModel : public QSortFilterProxyModel
 {
     Q_OBJECT
     QML_NAMED_ELEMENT(HistoryModel)
@@ -22,11 +22,21 @@ class DeclarativeHistoryModel : public QIdentityProxyModel
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
     Q_PROPERTY(QString currentText READ currentText NOTIFY currentTextChanged)
 
+    Q_PROPERTY(bool starredOnly READ starredOnly WRITE setStarredOnly NOTIFY starredOnlyChanged)
+    Q_PROPERTY(bool starredPrioritized READ starredPrioritized WRITE setStarredPrioritized NOTIFY starredPrioritizedChanged)
+
 public:
     explicit DeclarativeHistoryModel(QObject *parent = nullptr);
     ~DeclarativeHistoryModel() override;
 
     QString currentText() const;
+
+    bool starredOnly() const;
+    void setStarredOnly(bool value);
+
+    bool starredPrioritized() const;
+    void setStarredPrioritized(bool value);
+
 
     Q_INVOKABLE void moveToTop(const QString &uuid);
 
@@ -38,7 +48,16 @@ public:
 Q_SIGNALS:
     void countChanged();
     void currentTextChanged();
+    void starredOnlyChanged();
+    void starredPrioritizedChanged();
+
+protected:
+    bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
+    bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const override;
 
 private:
     std::shared_ptr<HistoryModel> m_model;
+    bool m_starredOnly = false;
+    bool m_starredPrioritized = true;
+
 };

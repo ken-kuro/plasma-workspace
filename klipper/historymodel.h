@@ -31,6 +31,7 @@ public:
         TypeIntRole,
         ImageUrlRole,
         ImageSizeRole,
+        StarredRole
     };
     Q_ENUM(RoleType)
 

@@ -292,6 +292,16 @@ QVariant HistoryModel::data(const QModelIndex &index, int role) const
         return QVariant::fromValue<HistoryItemType>(item->type());
     case TypeIntRole:
         return int(item->type());
+    case StarredRole:
+        QSqlQuery query(m_db);
+        // Use prepared statement for safety
+        query.prepare(u"SELECT starred FROM main WHERE uuid = ?"_s);
+        query.addBindValue(item->uuid());
+        if (query.exec() && query.isSelect() && query.next()) {
+            return query.value(0).toBool();
+        }
+        // Return default value on error or if item not found (shouldn't happen ideally)
+        return false;
     }
     return QVariant();
 }
@@ -346,6 +356,21 @@ bool HistoryModel::setData(const QModelIndex &index, const QVariant &value, int 
         item = std::make_shared<HistoryItem>(std::move(newUuid), std::move(mimetypes), std::move(text));
         Q_EMIT dataChanged(index, index, {Qt::DisplayRole, UuidRole});
         return true;
+    }
+    case StarredRole: {
+        bool newValue = value.toBool();
+        QSqlQuery query(m_db);
+        // Use prepared statement for safety
+        query.prepare(u"UPDATE main SET starred = ? WHERE uuid = ?"_s);
+        query.addBindValue(newValue);
+        query.addBindValue(item->uuid());
+
+        if (query.exec()) {
+            // Notify views that this specific role has changed for the item
+            Q_EMIT dataChanged(index, index, {StarredRole});
+            return true;
+        }
+        break;
     }
     }
 
@@ -686,6 +711,7 @@ QHash<int, QByteArray> HistoryModel::roleNames() const
     hash.insert(ImageSizeRole, QByteArrayLiteral("imageSize"));
     hash.insert(UuidRole, QByteArrayLiteral("uuid"));
     hash.insert(TypeIntRole, QByteArrayLiteral("type"));
+    hash.insert(StarredRole, QByteArrayLiteral("starred"));
     return hash;
 }
 
