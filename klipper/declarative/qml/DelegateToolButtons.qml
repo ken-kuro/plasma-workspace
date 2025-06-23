@@ -30,10 +30,10 @@ GridLayout {
     readonly property var buttonDefinitions: [
         {
             role: DelegateToolButtons.ButtonRole.ToggleStar,
-            // Binding directly references menuItem's state
-            icon: menuItem.model.starred ? "starred-symbolic" : "non-starred-symbolic",
-            // Binding directly references menuItem's state
-            text: menuItem.model.starred ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star"),
+            // Binding directly references menuItem's state with safety check
+            icon: (menuItem.model?.starred ?? false) ? "starred-symbolic" : "non-starred-symbolic",
+            // Binding directly references menuItem's state with safety check
+            text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star"),
             // visible: true // Optional, defaults to true
         },
         {
@@ -75,8 +75,9 @@ GridLayout {
     function trigger(actionRole: int): void {
         switch (actionRole) {
             case DelegateToolButtons.ButtonRole.ToggleStar:
-            // TODO: Should I do this or is it better to use a signal?
-            menuItem.model.starred = !menuItem.model.starred;
+            if (menuItem.model) {
+                menuItem.model.starred = !(menuItem.model?.starred ?? false);
+            }
             break;
         case DelegateToolButtons.ButtonRole.InvokeAction:
             menuItem.triggerAction();
@@ -95,25 +96,26 @@ GridLayout {
 
     Repeater {
         id: repeater
-        // TODO: I want to use the model here, as in https://doc.qt.io/qt-6/qtquick-modelviewsdata-modelview.html#repeaters
-        model: toolButtonsLayout.buttonDefinitions.length
+        model: toolButtonsLayout.buttonDefinitions
 
         PlasmaComponents3.ToolButton {
             required property int index
+            required property var modelData
+            
             Layout.fillWidth: toolButtonsLayout.shouldUseOverflowButton
             Layout.leftMargin: toolButtonsLayout.shouldUseOverflowButton ? Kirigami.Units.gridUnit : 0
             Layout.rightMargin: toolButtonsLayout.shouldUseOverflowButton ? Kirigami.Units.gridUnit : 0
 
             display: toolButtonsLayout.shouldUseOverflowButton ? PlasmaComponents3.AbstractButton.TextBesideIcon : PlasmaComponents3.AbstractButton.IconOnly
-            text: toolButtonsLayout.buttonDefinitions[index].text
-            icon.name: toolButtonsLayout.buttonDefinitions[index].icon
-            visible: toolButtonsLayout.buttonDefinitions[index].visible ?? true
+            text: modelData.text
+            icon.name: modelData.icon
+            visible: modelData.visible ?? true
 
             KeyNavigation.right: (index === repeater.count - 1 ? this : repeater.itemAt(index + 1)) as PlasmaComponents3.ToolButton
             PlasmaComponents3.ToolTip.text: text
             PlasmaComponents3.ToolTip.delay: Kirigami.Units.toolTipDelay
             PlasmaComponents3.ToolTip.visible: hovered || (activeFocus && (focusReason === Qt.TabFocusReason || focusReason === Qt.BacktabFocusReason))
-            onClicked: toolButtonsLayout.trigger(toolButtonsLayout.buttonDefinitions[index].role)
+            onClicked: toolButtonsLayout.trigger(modelData.role)
         }
     }
 }
