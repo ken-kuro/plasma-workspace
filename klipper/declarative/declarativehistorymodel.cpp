@@ -13,6 +13,9 @@ DeclarativeHistoryModel::DeclarativeHistoryModel(QObject *parent)
     , m_model(HistoryModel::self())
 {
     setSourceModel(m_model.get());
+    setDynamicSortFilter(true);
+    // Initialize sorting - sort by first column in ascending order to maintain original behavior when not prioritizing starred
+    sort(0, Qt::AscendingOrder);
 
     connect(this, &QSortFilterProxyModel::rowsInserted, this, &DeclarativeHistoryModel::countChanged);
     connect(this, &QSortFilterProxyModel::rowsRemoved, this, &DeclarativeHistoryModel::countChanged);
@@ -55,7 +58,7 @@ void DeclarativeHistoryModel::setStarredPrioritized(bool value)
         return;
     }
     m_starredPrioritized = value;
-    invalidateRowsFilter();
+    invalidate();
     Q_EMIT starredPrioritizedChanged();
 }
 
@@ -85,7 +88,23 @@ void DeclarativeHistoryModel::invokeAction(const QString &uuid)
 bool DeclarativeHistoryModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
 {
     if (m_starredOnly) {
-        return index(sourceRow, 0).data(HistoryModel::StarredRole).toBool();
+        // Always show the current clipboard item (row 0) to prevent UI lockout
+        if (sourceRow == 0) {
+            return true;
+        }
+        
+        // Safety check: ensure we have a valid source model and row
+        if (!sourceModel() || sourceRow < 0 || sourceRow >= sourceModel()->rowCount(sourceParent)) {
+            return false;
+        }
+        
+        QModelIndex sourceIndex = sourceModel()->index(sourceRow, 0, sourceParent);
+        if (!sourceIndex.isValid()) {
+            return false;
+        }
+        
+        QVariant starredData = sourceIndex.data(HistoryModel::StarredRole);
+        return starredData.isValid() && starredData.toBool();
     }
 
     return true;
