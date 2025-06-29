@@ -27,48 +27,73 @@ GridLayout {
     required property PlasmaComponents3.ItemDelegate menuItem
     required property bool shouldUseOverflowButton
 
+    // Constants for item types (from HistoryItemType enum in historyitem.h)
+    readonly property int textItemType: 2  // HistoryItemType::Text = 1 << 1
+
+    // Check if we're in "starred only" mode (starred item but not hovering)
+    readonly property bool starredOnlyMode: (menuItem.model?.starred ?? false) && !menuItem.ListView.isCurrentItem
+
     readonly property var buttonDefinitions: [
         {
-            role: DelegateToolButtons.ButtonRole.ToggleStar,
-            // Binding directly references menuItem's state with safety check
-            icon: (menuItem.model?.starred ?? false) ? "starred-symbolic" : "non-starred-symbolic",
-            // Binding directly references menuItem's state with safety check
-            text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star"),
-            // visible: true // Optional, defaults to true
-        },
-        {
             role: DelegateToolButtons.ButtonRole.InvokeAction,
-            icon: "system-run", // Static value
-            text: i18nd("klipper", "Invoke action"), // Static value
-            // visible: true
+            icon: "system-run",
+            text: i18nd("klipper", "Invoke action")
         },
         {
             role: DelegateToolButtons.ButtonRole.ShowQRCode,
-            icon: "view-barcode-qr", // Static value
-            text: i18nd("klipper", "Show QR code"), // Static value
-            // visible: true
+            icon: "view-barcode-qr",
+            text: i18nd("klipper", "Show QR code")
         },
         {
             role: DelegateToolButtons.ButtonRole.Edit,
-            icon: "document-edit", // Static value
-            text: i18nd("klipper", "Edit contents"), // Static value
-            // Binding directly references menuItem's state
-            visible: menuItem.type === 2 // Only show for text items (assuming type 2 is text)
+            icon: "document-edit",
+            text: i18nd("klipper", "Edit contents"),
+            visible: menuItem.type === toolButtonsLayout.textItemType // Only show for text items
         },
         {
             role: DelegateToolButtons.ButtonRole.Remove,
-            icon: "edit-delete", // Static value
-            text: i18nd("klipper", "Remove from history"), // Static value
-            // visible: true
+            icon: "edit-delete",
+            text: i18nd("klipper", "Remove from history")
+        },
+        {
+            role: DelegateToolButtons.ButtonRole.ToggleStar,
+            icon: (menuItem.model?.starred ?? false) ? "starred-symbolic" : "non-starred-symbolic",
+            text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star"),
+            // Star button is visible when: 1) Item is starred (always show), 2) Not in starred-only mode (show on hover)
+            visible: (menuItem.model?.starred ?? false) || !toolButtonsLayout.starredOnlyMode
         }
     ]
+
+    // Helper function to determine if a button should be visible
+    function shouldShowButton(buttonDef): bool {
+        const baseVisible = buttonDef.visible ?? true;
+        if (!baseVisible) return false;
+        
+        // In starred-only mode, only show the star button
+        if (starredOnlyMode) {
+            return buttonDef.role === DelegateToolButtons.ButtonRole.ToggleStar;
+        }
+        
+        return true;
+    }
+
+    // Calculate visible button count for layout
+    readonly property int visibleButtonCount: {
+        let count = 0;
+        for (let i = 0; i < buttonDefinitions.length; i++) {
+            if (shouldShowButton(buttonDefinitions[i])) {
+                count++;
+            }
+        }
+        return count;
+    }
 
     readonly property Item defaultButton: visibleChildren.length > 0 ? visibleChildren[0] : this
     // https://bugreports.qt.io/browse/QTBUG-108821
     readonly property bool hovered: visibleChildren.filter(x => x.hovered).length > 0
 
-    rows: shouldUseOverflowButton ? (buttonDefinitions.length - (menuItem.type === 2 ? 0 : 1)) : 1
-    columns: shouldUseOverflowButton ? 1 : (buttonDefinitions.length - (menuItem.type === 2 ? 0 : 1))
+    rows: shouldUseOverflowButton ? visibleButtonCount : 1
+    columns: shouldUseOverflowButton ? 1 : visibleButtonCount
     rowSpacing: Kirigami.Units.smallSpacing
     columnSpacing: Kirigami.Units.smallSpacing
 
@@ -109,7 +134,7 @@ GridLayout {
             display: toolButtonsLayout.shouldUseOverflowButton ? PlasmaComponents3.AbstractButton.TextBesideIcon : PlasmaComponents3.AbstractButton.IconOnly
             text: modelData.text
             icon.name: modelData.icon
-            visible: modelData.visible ?? true
+            visible: toolButtonsLayout.shouldShowButton(modelData)
 
             KeyNavigation.right: (index === repeater.count - 1 ? this : repeater.itemAt(index + 1)) as PlasmaComponents3.ToolButton
             PlasmaComponents3.ToolTip.text: text
