@@ -168,7 +168,7 @@ PlasmaComponents.ItemDelegate {
             left: parent.left
             leftMargin: Math.ceil(Kirigami.Units.gridUnit / 2) - menuItem.listMargins.left
             right: parent.right
-            rightMargin: expandButtonLoader.implicitWidth + expandButtonLoader.anchors.rightMargin + (starIndicator.visible ? starIndicator.width + Kirigami.Units.smallSpacing : 0)
+            rightMargin: expandButtonLoader.implicitWidth + expandButtonLoader.anchors.rightMargin
             verticalCenter: parent.verticalCenter
         }
         states: [
@@ -182,38 +182,7 @@ PlasmaComponents.ItemDelegate {
         ]
     }
 
-    // Persistent star indicator - shows when item is starred
-    Kirigami.Icon {
-        id: starIndicator
-        anchors {
-            right: expandButtonLoader.left
-            rightMargin: Kirigami.Units.smallSpacing
-            verticalCenter: parent.verticalCenter
-        }
-        
-        source: "starred-symbolic"
-        width: Kirigami.Units.iconSizes.small
-        height: Kirigami.Units.iconSizes.small
-        visible: menuItem.model?.starred ?? false
-        opacity: 0.8
-        
-        // Add a subtle glow effect for better visibility
-        color: Kirigami.Theme.highlightColor
-        
-        states: [
-            State {
-                when: toolButtonsLoader.active
-                AnchorChanges {
-                    target: starIndicator
-                    anchors.verticalCenter: undefined
-                }
-                PropertyChanges {
-                    target: starIndicator
-                    anchors.topMargin: Math.ceil(Kirigami.Units.gridUnit / 2) - menuItem.listMargins.top
-                }
-            }
-        ]
-    }
+
 
     Loader {
         id: expandButtonLoader
@@ -270,7 +239,7 @@ PlasmaComponents.ItemDelegate {
             menuItem: menuItem
             shouldUseOverflowButton: menuItem.shouldUseOverflowButton
         }
-        active: (menuItem.ListView.isCurrentItem && !menuItem.shouldUseOverflowButton) || (menuItem.shouldUseOverflowButton && (!!expandButtonLoader.item?.checked || opacity > 0))
+        active: (menuItem.ListView.isCurrentItem && !menuItem.shouldUseOverflowButton) || (menuItem.shouldUseOverflowButton && (!!expandButtonLoader.item?.checked || opacity > 0)) || (menuItem.model?.starred ?? false)
         opacity: !expandButtonLoader.active || expandButtonLoader.item.checked ? 1 : 0
 
         // It's not recommended to change anchors via conditional bindings, use AnchorChanges instead.
