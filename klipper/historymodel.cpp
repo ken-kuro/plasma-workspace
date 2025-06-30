@@ -206,6 +206,66 @@ void HistoryModel::clear()
     }
 }
 
+void HistoryModel::clearNonStarredHistory()
+{
+    if (!m_db.isOpen()) {
+        return;
+    }
+    
+    // Get UUIDs of all non-starred items
+    QStringList nonStarredUuids;
+    QSqlQuery query(m_db);
+    query.exec(u"SELECT uuid FROM main WHERE starred = 0 OR starred IS NULL"_s);
+    while (query.next()) {
+        nonStarredUuids.append(query.value(0).toString());
+    }
+    
+    if (nonStarredUuids.isEmpty()) {
+        return; // No non-starred items to remove
+    }
+    
+    // Delete non-starred items from database
+    {
+        TransactionGuard transaction(&m_db);
+        QStringList quotedUuids;
+        for (const QString &uuid : std::as_const(nonStarredUuids)) {
+            quotedUuids.append(u'\'' + uuid + u'\'');
+        }
+        const QString uuidList = quotedUuids.join(u',');
+        
+        if (!transaction.exec(u"DELETE FROM main WHERE uuid IN (%1)"_s.arg(uuidList))) {
+            return;
+        }
+        if (!transaction.exec(u"DELETE FROM aux WHERE uuid IN (%1)"_s.arg(uuidList))) {
+            return;
+        }
+    }
+    
+    // Delete associated data folders
+    QList<QUrl> deletedDataFolders;
+    deletedDataFolders.reserve(nonStarredUuids.size());
+    for (const QString &uuid : std::as_const(nonStarredUuids)) {
+        deletedDataFolders.append(QUrl::fromLocalFile(m_dbFolder + u"/data/" + uuid + u'/'));
+    }
+    auto job = KIO::del(deletedDataFolders, KIO::HideProgressInfo);
+    ++m_pendingJobs;
+    connect(job, &KJob::finished, this, [this] {
+        --m_pendingJobs;
+    });
+    
+    // Remove items from the model that were deleted
+    // We need to work backwards to maintain correct indices
+    for (qsizetype i = m_items.size() - 1; i >= 0; --i) {
+        if (nonStarredUuids.contains(m_items[i]->uuid())) {
+            beginRemoveRows(QModelIndex(), i, i);
+            m_items.removeAt(i);
+            endRemoveRows();
+        }
+    }
+    
+    QSqlQuery(u"VACUUM"_s, m_db).exec();
+}
+
 void HistoryModel::clearHistory()
 {
     int clearHist = KMessageBox::warningContinueCancel(nullptr,

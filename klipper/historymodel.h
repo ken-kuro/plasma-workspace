@@ -119,6 +119,8 @@ private:
 
     static void saveToFile(QStringView dbFolder, const QByteArray &data, QStringView newUuid, QStringView dataUuid);
 
+    void clearNonStarredHistory();
+
     std::shared_ptr<SystemClipboard> m_clip;
     QList<std::shared_ptr<HistoryItem>> m_items;
     int m_pendingJobs = 0;
