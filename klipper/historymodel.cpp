@@ -292,7 +292,32 @@ void HistoryModel::setMaxSize(qsizetype size)
     }
     m_maxSize = size;
     if (m_items.size() > m_maxSize) {
-        removeRows(m_maxSize, m_items.size() - m_maxSize);
+        // Remove non-starred items from the end until we're within the size limit
+        // or until no more non-starred items are available
+        // TODO: Consider adding a separate maxStarredItems setting in the future
+        // to prevent starred items from causing unlimited history growth
+        qsizetype itemsToRemove = m_items.size() - m_maxSize;
+        qsizetype removedCount = 0;
+        
+        for (qsizetype i = m_items.size() - 1; i >= 0 && removedCount < itemsToRemove; --i) {
+            // Check if item is starred
+            QSqlQuery query(m_db);
+            query.prepare(u"SELECT starred FROM main WHERE uuid = ?"_s);
+            query.addBindValue(m_items[i]->uuid());
+            bool isStarred = false;
+            if (query.exec() && query.isSelect() && query.next()) {
+                isStarred = query.value(0).toBool();
+            }
+            
+            if (!isStarred) {
+                removeRow(i);
+                removedCount++;
+                // Note: After removeRow, indices shift, but since we're going backwards
+                // and only removing from the current position, this is safe
+            }
+        }
+        // If we couldn't remove enough non-starred items, the history may exceed maxSize
+        // This is acceptable as starred items are protected
     }
 }
 
@@ -564,7 +589,30 @@ bool HistoryModel::insert(const QMimeData *mimeData, qreal timestamp)
 
     // BUG 417590: Remove only after an item is inserted to avoid clearing clipboard
     if (m_items.size() > m_maxSize) {
-        removeRow(m_items.size() - 1);
+        // Find the first non-starred item from the end to remove, skipping starred items
+        int itemToRemove = -1;
+        for (qsizetype i = m_items.size() - 1; i >= 0; --i) {
+            // Check if item is starred
+            QSqlQuery query(m_db);
+            query.prepare(u"SELECT starred FROM main WHERE uuid = ?"_s);
+            query.addBindValue(m_items[i]->uuid());
+            bool isStarred = false;
+            if (query.exec() && query.isSelect() && query.next()) {
+                isStarred = query.value(0).toBool();
+            }
+            
+            if (!isStarred) {
+                itemToRemove = i;
+                break;
+            }
+        }
+        
+        if (itemToRemove >= 0) {
+            removeRow(itemToRemove);
+        }
+        // If no non-starred items found, we don't remove anything
+        // This means starred items can cause the history to exceed maxSize
+        // TODO: Consider implementing a separate starred item limit or warning mechanism
     }
 
     ++m_pendingJobs;
