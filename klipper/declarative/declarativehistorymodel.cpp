@@ -38,6 +38,82 @@ DeclarativeHistoryModel::~DeclarativeHistoryModel()
 {
 }
 
+QVariant DeclarativeHistoryModel::data(const QModelIndex &index, int role) const
+{
+    if (role == SectionRole) {
+        if (!index.isValid() || index.row() < 0 || index.row() >= rowCount()) {
+            return QStringLiteral("");
+        }
+        
+        // Map proxy row to source row to get starred status and identify current item
+        QModelIndex sourceIndex = mapToSource(index);
+        if (!sourceIndex.isValid()) {
+            return QStringLiteral("");
+        }
+        
+        int sourceRow = sourceIndex.row();
+        int proxyRow = index.row();
+        
+        // The current clipboard item is always at source row 0 and proxy row 0
+        if (sourceRow == 0) {
+            return QStringLiteral("Current");
+        }
+        
+        // If starred prioritization is disabled, everything else is just "History"
+        if (!m_starredPrioritized) {
+            return QStringLiteral("History");
+        }
+        
+        // When starred prioritization is enabled, we need to determine section boundaries
+        // by looking at the contiguous groups in the sorted proxy model
+        
+        // Strategy: Find the transition point between starred and non-starred items
+        // in the proxy model to create clean section boundaries
+        
+        // Check if current item is starred
+        QVariant starredData = sourceIndex.data(HistoryModel::StarredRole);
+        bool currentItemStarred = starredData.isValid() && starredData.toBool();
+        
+        // Look through the proxy model to find where the transition happens
+        bool foundNonStarredItem = false;
+        
+        // Scan from row 1 (after current) to current position to see if we've passed
+        // the starred section boundary
+        for (int i = 1; i <= proxyRow; ++i) {
+            QModelIndex proxyIndex = this->index(i, 0);
+            if (proxyIndex.isValid()) {
+                QModelIndex srcIndex = mapToSource(proxyIndex);
+                if (srcIndex.isValid()) {
+                    QVariant starred = srcIndex.data(HistoryModel::StarredRole);
+                    bool isStarred = starred.isValid() && starred.toBool();
+                    if (!isStarred) {
+                        foundNonStarredItem = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // If we're starred and haven't reached the non-starred section yet, we're in "Starred"
+        // If we're non-starred or have passed into the non-starred section, we're in "History"
+        if (currentItemStarred && !foundNonStarredItem) {
+            return QStringLiteral("Starred");
+        } else {
+            return QStringLiteral("History");
+        }
+    }
+    
+    // For all other roles, delegate to base class
+    return QSortFilterProxyModel::data(index, role);
+}
+
+QHash<int, QByteArray> DeclarativeHistoryModel::roleNames() const
+{
+    QHash<int, QByteArray> roles = QSortFilterProxyModel::roleNames();
+    roles[SectionRole] = "section";
+    return roles;
+}
+
 QString DeclarativeHistoryModel::currentText() const
 {
     return m_model->rowCount() == 0 ? QString() : m_model->index(0).data(Qt::DisplayRole).toString();
