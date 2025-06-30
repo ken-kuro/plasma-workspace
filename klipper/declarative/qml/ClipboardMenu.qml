@@ -313,6 +313,15 @@ PlasmaComponents3.ScrollView {
             filterRegularExpression: RegExp(filter.text, "i")
         }
 
+        // Section support for visual grouping
+        section.property: "section"
+        section.criteria: ViewSection.FullString
+        section.delegate: Kirigami.ListSectionHeader {
+            required property string section
+            width: menuListView.width
+            text: section
+        }
+
         topMargin: Kirigami.Units.largeSpacing
         bottomMargin: Kirigami.Units.largeSpacing
         leftMargin: Kirigami.Units.largeSpacing
