@@ -58,6 +58,5 @@ protected:
 private:
     std::shared_ptr<HistoryModel> m_model;
     bool m_starredOnly = false;
-    bool m_starredPrioritized = true;
-
+    bool m_starredPrioritized = false;
 };
