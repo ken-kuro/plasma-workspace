@@ -21,6 +21,17 @@ DeclarativeHistoryModel::DeclarativeHistoryModel(QObject *parent)
     connect(this, &QSortFilterProxyModel::rowsRemoved, this, &DeclarativeHistoryModel::countChanged);
     connect(this, &QSortFilterProxyModel::modelReset, this, &DeclarativeHistoryModel::countChanged);
     connect(m_model.get(), &HistoryModel::changed, this, &DeclarativeHistoryModel::currentTextChanged);
+    
+    // Force re-sort when new items are added and starred prioritization is enabled
+    connect(m_model.get(), &QAbstractItemModel::rowsInserted, this, [this](const QModelIndex &parent, int first, int last) {
+        Q_UNUSED(parent)
+        Q_UNUSED(last)
+        // Only trigger re-sort if starred prioritization is enabled and a new item was added at the top
+        if (m_starredPrioritized && first == 0) {
+            // Force a complete re-sort to ensure starred items are properly prioritized
+            invalidate();
+        }
+    });
 }
 
 DeclarativeHistoryModel::~DeclarativeHistoryModel()
@@ -115,26 +126,36 @@ bool DeclarativeHistoryModel::lessThan(const QModelIndex &source_left, const QMo
     const int leftRow = source_left.row();
     const int rightRow = source_right.row();
 
-    // Always prioritize the current clipboard item
+    // When starred prioritization is disabled, maintain original chronological order
+    if (!m_starredPrioritized) {
+        return leftRow < rightRow;
+    }
+
+    // When starred prioritization is enabled, implement the correct sorting logic:
+    // 1. Current clipboard item (row 0) always first
+    // 2. Starred items come next (in chronological order among themselves)  
+    // 3. Non-starred items come last (in chronological order among themselves)
+
+    // Always prioritize the current clipboard item (row 0 in source model)
     if (leftRow == 0) {
         return true;
     } else if (rightRow == 0) {
         return false;
     }
 
-    if (m_starredPrioritized) {
-        const bool leftPinned = source_left.data(HistoryModel::StarredRole).toBool();
-        const bool rightPinned = source_right.data(HistoryModel::StarredRole).toBool();
+    // For non-current items, check starred status
+    const bool leftStarred = source_left.data(HistoryModel::StarredRole).toBool();
+    const bool rightStarred = source_right.data(HistoryModel::StarredRole).toBool();
 
-        if (leftPinned && !rightPinned) {
-            return true;
-        }
-
-        if (rightPinned && !leftPinned) {
-            return false;
-        }
+    // If one is starred and the other isn't, starred comes first
+    if (leftStarred && !rightStarred) {
+        return true;
+    }
+    if (rightStarred && !leftStarred) {
+        return false;
     }
 
+    // If both have the same starred status, maintain chronological order
     return leftRow < rightRow;
 }
 
