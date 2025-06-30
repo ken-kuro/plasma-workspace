@@ -30,9 +30,6 @@ GridLayout {
     // Constants for item types (from HistoryItemType enum in historyitem.h)
     readonly property int textItemType: 2  // HistoryItemType::Text = 1 << 1
 
-    // Check if we're in "starred only" mode (starred item but not hovering)
-    readonly property bool starredOnlyMode: (menuItem.model?.starred ?? false) && !menuItem.ListView.isCurrentItem
-
     readonly property var buttonDefinitions: [
         {
             role: DelegateToolButtons.ButtonRole.InvokeAction,
@@ -58,23 +55,13 @@ GridLayout {
         {
             role: DelegateToolButtons.ButtonRole.ToggleStar,
             icon: (menuItem.model?.starred ?? false) ? "starred-symbolic" : "non-starred-symbolic",
-            text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star"),
-            // Star button is visible when: 1) Item is starred (always show), 2) Not in starred-only mode (show on hover)
-            visible: (menuItem.model?.starred ?? false) || !toolButtonsLayout.starredOnlyMode
+            text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star")
         }
     ]
 
     // Helper function to determine if a button should be visible
     function shouldShowButton(buttonDef): bool {
-        const baseVisible = buttonDef.visible ?? true;
-        if (!baseVisible) return false;
-        
-        // In starred-only mode, only show the star button
-        if (starredOnlyMode) {
-            return buttonDef.role === DelegateToolButtons.ButtonRole.ToggleStar;
-        }
-        
-        return true;
+        return buttonDef.visible ?? true;
     }
 
     // Calculate visible button count for layout

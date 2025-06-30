@@ -168,7 +168,8 @@ PlasmaComponents.ItemDelegate {
             left: parent.left
             leftMargin: Math.ceil(Kirigami.Units.gridUnit / 2) - menuItem.listMargins.left
             right: parent.right
-            rightMargin: expandButtonLoader.implicitWidth + expandButtonLoader.anchors.rightMargin
+            rightMargin: expandButtonLoader.implicitWidth + expandButtonLoader.anchors.rightMargin + 
+                         ((menuItem.model?.starred ?? false) ? Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing : 0)
             verticalCenter: parent.verticalCenter
         }
         states: [
@@ -181,8 +182,6 @@ PlasmaComponents.ItemDelegate {
             }
         ]
     }
-
-
 
     Loader {
         id: expandButtonLoader
@@ -224,6 +223,21 @@ PlasmaComponents.ItemDelegate {
         ]
     }
 
+    // Star indicator for starred items (always visible when starred)
+    Kirigami.Icon {
+        id: starIndicator
+        anchors {
+            right: expandButtonLoader.left
+            rightMargin: Kirigami.Units.smallSpacing
+            verticalCenter: parent.verticalCenter
+        }
+        width: Kirigami.Units.iconSizes.small
+        height: width
+        source: "starred-symbolic"
+        visible: (menuItem.model?.starred ?? false) && !menuItem.ListView.isCurrentItem && !menuItem.hovered
+        opacity: 0.7
+    }
+
     Loader {
         id: toolButtonsLoader
 
@@ -239,7 +253,7 @@ PlasmaComponents.ItemDelegate {
             menuItem: menuItem
             shouldUseOverflowButton: menuItem.shouldUseOverflowButton
         }
-        active: (menuItem.ListView.isCurrentItem && !menuItem.shouldUseOverflowButton) || (menuItem.shouldUseOverflowButton && (!!expandButtonLoader.item?.checked || opacity > 0)) || (menuItem.model?.starred ?? false)
+        active: (menuItem.ListView.isCurrentItem && !menuItem.shouldUseOverflowButton) || (menuItem.shouldUseOverflowButton && (!!expandButtonLoader.item?.checked || opacity > 0))
         opacity: !expandButtonLoader.active || expandButtonLoader.item.checked ? 1 : 0
 
         // It's not recommended to change anchors via conditional bindings, use AnchorChanges instead.
