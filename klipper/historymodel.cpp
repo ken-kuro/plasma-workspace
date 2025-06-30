@@ -268,16 +268,52 @@ void HistoryModel::clearNonStarredHistory()
 
 void HistoryModel::clearHistory()
 {
-    int clearHist = KMessageBox::warningContinueCancel(nullptr,
-                                                       i18n("Do you really want to clear and delete the entire clipboard history?"),
-                                                       i18n("Clear Clipboard History"),
-                                                       KStandardGuiItem::del(),
-                                                       KStandardGuiItem::cancel(),
-                                                       QStringLiteral("klipperClearHistoryAskAgain"),
-                                                       KMessageBox::Dangerous);
-    if (clearHist == KMessageBox::Continue) {
-        clear();
+    // First check if there are any starred items
+    QSqlQuery starredQuery(m_db);
+    starredQuery.exec(u"SELECT COUNT(*) FROM main WHERE starred = 1"_s);
+    bool hasStarredItems = false;
+    if (starredQuery.next()) {
+        hasStarredItems = starredQuery.value(0).toInt() > 0;
     }
+    
+    if (hasStarredItems) {
+        // Offer choice to keep starred items or clear everything
+        // TODO: Consider adding a setting in Klipper configuration UI to customize this behavior
+        // (e.g., always ask, always keep starred, always clear all)
+        int clearChoice = KMessageBox::questionTwoActionsCancel(nullptr,
+                                                               i18n("You have starred items in your clipboard history. What would you like to do?"),
+                                                               i18n("Clear Clipboard History"),
+                                                               KGuiItem(i18n("Clear All"), QStringLiteral("edit-clear-history")),
+                                                               KGuiItem(i18n("Keep Starred Items"), QStringLiteral("starred-symbolic")),
+                                                               KStandardGuiItem::cancel(),
+                                                               QStringLiteral("klipperClearHistoryStarredChoice"));
+        
+        if (clearChoice == KMessageBox::Cancel) {
+            return; // User cancelled
+        } else if (clearChoice == KMessageBox::ButtonCode::SecondaryAction) {
+            // Keep starred items - delete only non-starred
+            clearNonStarredHistory();
+            return;
+        }
+        // If FirstAction (Clear All), fall through to normal clear()
+    } else {
+        // No starred items, show normal confirmation
+        // TODO: Consider adding a "Reset 'Don't ask again' dialogs" button in Klipper settings
+        // to help users recover from accidentally dismissed confirmations
+        int clearHist = KMessageBox::warningContinueCancel(nullptr,
+                                                           i18n("Do you really want to clear and delete the entire clipboard history?"),
+                                                           i18n("Clear Clipboard History"),
+                                                           KStandardGuiItem::del(),
+                                                           KStandardGuiItem::cancel(),
+                                                           QStringLiteral("klipperClearHistoryAskAgain"),
+                                                           KMessageBox::Dangerous);
+        if (clearHist != KMessageBox::Continue) {
+            return; // User cancelled
+        }
+    }
+    
+    // Clear everything (including starred items)
+    clear();
 }
 
 qsizetype HistoryModel::maxSize() const
@@ -511,6 +547,29 @@ bool HistoryModel::remove(const QString &uuid)
     if (index < 0) {
         return false;
     }
+    
+    // Check if the item is starred before removing
+    QSqlQuery query(m_db);
+    query.prepare(u"SELECT starred FROM main WHERE uuid = ?"_s);
+    query.addBindValue(uuid);
+    bool isStarred = false;
+    if (query.exec() && query.isSelect() && query.next()) {
+        isStarred = query.value(0).toBool();
+    }
+    
+    // Show confirmation dialog for starred items
+    if (isStarred) {
+        int result = KMessageBox::warningContinueCancel(nullptr,
+                                                       i18n("This item is starred. Do you really want to remove it from history?"),
+                                                       i18n("Remove Starred Item"),
+                                                       KStandardGuiItem::del(),
+                                                       KStandardGuiItem::cancel(),
+                                                       QStringLiteral("klipperRemoveStarredItemAskAgain"));
+        if (result != KMessageBox::Continue) {
+            return false; // User cancelled deletion
+        }
+    }
+    
     return removeRow(index, QModelIndex());
 }
 
