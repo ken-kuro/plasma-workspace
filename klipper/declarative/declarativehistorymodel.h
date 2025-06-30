@@ -26,8 +26,18 @@ class DeclarativeHistoryModel : public QSortFilterProxyModel
     Q_PROPERTY(bool starredPrioritized READ starredPrioritized WRITE setStarredPrioritized NOTIFY starredPrioritizedChanged)
 
 public:
+    enum CustomRoles {
+        SectionRole = Qt::UserRole + 1000 // Custom role for section headers
+    };
+
     explicit DeclarativeHistoryModel(QObject *parent = nullptr);
     ~DeclarativeHistoryModel() override;
+
+    // Override data to provide section information
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+
+    // Override roleNames to expose custom roles to QML
+    QHash<int, QByteArray> roleNames() const override;
 
     QString currentText() const;
 
