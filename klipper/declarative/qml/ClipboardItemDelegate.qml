@@ -77,7 +77,7 @@ PlasmaComponents.ItemDelegate {
     Keys.onReturnPressed: menuItem.clicked()
     Keys.onDeletePressed: menuItem.remove()
     KeyNavigation.right: toolButtonsLoader.active ? toolButtonsLoader.item.defaultButton : toolButtonsLoader
-    KeyNavigation.left: starButton
+    KeyNavigation.left: starButton.activeFocusOnTab ? starButton : null
 
     ListView.onIsCurrentItemChanged: {
         if (ListView.isCurrentItem) {
@@ -191,6 +191,10 @@ PlasmaComponents.ItemDelegate {
         PlasmaComponents.ToolTip.text: text
         PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
         PlasmaComponents.ToolTip.visible: hovered || (activeFocus && (focusReason === Qt.TabFocusReason || focusReason === Qt.BacktabFocusReason))
+        
+        // Only allow focus when this item is the current item
+        activeFocusOnTab: menuItem.ListView.isCurrentItem
+        enabled: menuItem.ListView.isCurrentItem || hovered
         
         KeyNavigation.right: toolButtonsLoader.active ? toolButtonsLoader.item.defaultButton : toolButtonsLoader
         
