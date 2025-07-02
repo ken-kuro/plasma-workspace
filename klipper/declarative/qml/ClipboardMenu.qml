@@ -209,10 +209,6 @@ PlasmaComponents3.ScrollView {
                 PlasmaExtras.SearchField {
                     id: filter
                     Layout.fillWidth: true
-
-                    // reset focus when popup becomes visible so down arrow always moves to first entry
-                    focus: (clipboardMenu.Window.window?.visible && !Kirigami.InputMethod.willShowOnActive) ?? false
-
                     KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
                     KeyNavigation.down: tabBar
                     KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : tabBar
@@ -239,7 +235,6 @@ PlasmaComponents3.ScrollView {
 
                     KeyNavigation.left: filter
                     KeyNavigation.down: tabBar
-                    KeyNavigation.up: filter
 
                     onClicked: {
                         clipboardMenu.model.clearHistory();
@@ -320,10 +315,11 @@ PlasmaComponents3.ScrollView {
 
         highlightFollowsCurrentItem: false
         currentIndex: 0
-        focus: true  // Ensure ListView can receive focus initially
         
         // ListView KeyNavigation for when no items have focus
         KeyNavigation.up: tabBar
+        KeyNavigation.left: tabBar
+
         model: KItemModels.KSortFilterProxyModel {
             sourceModel: clipboardMenu.model
             filterRoleName: "display"
