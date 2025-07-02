@@ -23,30 +23,15 @@ class DeclarativeHistoryModel : public QSortFilterProxyModel
     Q_PROPERTY(QString currentText READ currentText NOTIFY currentTextChanged)
 
     Q_PROPERTY(bool starredOnly READ starredOnly WRITE setStarredOnly NOTIFY starredOnlyChanged)
-    Q_PROPERTY(bool starredPrioritized READ starredPrioritized WRITE setStarredPrioritized NOTIFY starredPrioritizedChanged)
 
 public:
-    enum CustomRoles {
-        SectionRole = Qt::UserRole + 1000 // Custom role for section headers
-    };
-
     explicit DeclarativeHistoryModel(QObject *parent = nullptr);
     ~DeclarativeHistoryModel() override;
-
-    // Override data to provide section information
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-
-    // Override roleNames to expose custom roles to QML
-    QHash<int, QByteArray> roleNames() const override;
 
     QString currentText() const;
 
     bool starredOnly() const;
     void setStarredOnly(bool value);
-
-    bool starredPrioritized() const;
-    void setStarredPrioritized(bool value);
-
 
     Q_INVOKABLE void moveToTop(const QString &uuid);
 
@@ -59,14 +44,11 @@ Q_SIGNALS:
     void countChanged();
     void currentTextChanged();
     void starredOnlyChanged();
-    void starredPrioritizedChanged();
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
-    bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const override;
 
 private:
     std::shared_ptr<HistoryModel> m_model;
     bool m_starredOnly = false;
-    bool m_starredPrioritized = false;
 };
