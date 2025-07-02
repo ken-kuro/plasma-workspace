@@ -51,11 +51,6 @@ GridLayout {
             role: DelegateToolButtons.ButtonRole.Remove,
             icon: "edit-delete",
             text: i18nd("klipper", "Remove from history")
-        },
-        {
-            role: DelegateToolButtons.ButtonRole.ToggleStar,
-            icon: (menuItem.model?.starred ?? false) ? "starred-symbolic" : "non-starred-symbolic",
-            text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star")
         }
     ]
 
@@ -86,11 +81,6 @@ GridLayout {
 
     function trigger(actionRole: int): void {
         switch (actionRole) {
-            case DelegateToolButtons.ButtonRole.ToggleStar:
-            if (menuItem.model) {
-                menuItem.model.starred = !(menuItem.model?.starred ?? false);
-            }
-            break;
         case DelegateToolButtons.ButtonRole.InvokeAction:
             menuItem.triggerAction();
             break;

@@ -77,6 +77,7 @@ PlasmaComponents.ItemDelegate {
     Keys.onReturnPressed: menuItem.clicked()
     Keys.onDeletePressed: menuItem.remove()
     KeyNavigation.right: toolButtonsLoader.active ? toolButtonsLoader.item.defaultButton : toolButtonsLoader
+    KeyNavigation.left: starButton
 
     ListView.onIsCurrentItemChanged: {
         if (ListView.isCurrentItem) {
@@ -144,11 +145,10 @@ PlasmaComponents.ItemDelegate {
         height: implicitHeight
         visible: !menuItem.ListView.isCurrentItem
         anchors {
-            left: parent.left
-            leftMargin: Math.ceil(Kirigami.Units.gridUnit / 2) - menuItem.listMargins.left
+            left: starButton.right
+            leftMargin: Kirigami.Units.smallSpacing
             right: parent.right
-            rightMargin: expandButtonLoader.implicitWidth + expandButtonLoader.anchors.rightMargin + 
-                         ((menuItem.model?.starred ?? false) ? Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing : 0)
+            rightMargin: expandButtonLoader.implicitWidth + expandButtonLoader.anchors.rightMargin
             verticalCenter: parent.verticalCenter
         }
         states: [
@@ -157,6 +157,59 @@ PlasmaComponents.ItemDelegate {
                 AnchorChanges {
                     target: label
                     anchors.verticalCenter: undefined
+                }
+            }
+        ]
+    }
+
+    // Star button on the left side (always visible, shows filled/outline based on starred state)
+    PlasmaComponents.ToolButton {
+        id: starButton
+        anchors {
+            left: parent.left
+            leftMargin: Math.ceil(Kirigami.Units.gridUnit / 2) - menuItem.listMargins.left + Kirigami.Units.smallSpacing
+            verticalCenter: parent.verticalCenter
+        }
+        implicitWidth: Kirigami.Units.gridUnit * 1.6
+        implicitHeight: Kirigami.Units.gridUnit * 1.6
+        display: PlasmaComponents.AbstractButton.IconOnly
+        icon.name: {
+            const isStarred = menuItem.model?.starred ?? false;
+            const itemIsHoveredOrFocused = menuItem.hovered || menuItem.ListView.isCurrentItem;
+            
+            if (isStarred) {
+                return "starred-symbolic";
+            } else if (itemIsHoveredOrFocused) {
+                return "new-star-symbolic";
+            } else {
+                return "non-starred-symbolic";
+            }
+        }
+        text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star")
+        visible: true
+        
+        PlasmaComponents.ToolTip.text: text
+        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+        PlasmaComponents.ToolTip.visible: hovered || (activeFocus && (focusReason === Qt.TabFocusReason || focusReason === Qt.BacktabFocusReason))
+        
+        KeyNavigation.right: toolButtonsLoader.active ? toolButtonsLoader.item.defaultButton : toolButtonsLoader
+        
+        onClicked: {
+            if (menuItem.model) {
+                menuItem.model.starred = !(menuItem.model?.starred ?? false);
+            }
+        }
+        
+        states: [
+            State {
+                when: toolButtonsLoader.active
+                AnchorChanges {
+                    target: starButton
+                    anchors.verticalCenter: undefined
+                }
+                PropertyChanges {
+                    target: starButton
+                    anchors.topMargin: Math.ceil(Kirigami.Units.gridUnit / 2) - menuItem.listMargins.top
                 }
             }
         ]
@@ -202,21 +255,6 @@ PlasmaComponents.ItemDelegate {
         ]
     }
 
-    // Star indicator for starred items (always visible when starred)
-    Kirigami.Icon {
-        id: starIndicator
-        anchors {
-            right: expandButtonLoader.left
-            rightMargin: Kirigami.Units.smallSpacing
-            verticalCenter: parent.verticalCenter
-        }
-        width: Kirigami.Units.iconSizes.small
-        height: width
-        source: "starred-symbolic"
-        visible: (menuItem.model?.starred ?? false) && !menuItem.ListView.isCurrentItem && !menuItem.hovered
-        opacity: 0.7
-    }
-
     Loader {
         id: toolButtonsLoader
 
@@ -239,14 +277,6 @@ PlasmaComponents.ItemDelegate {
         // See https://doc.qt.io/qt-5/qtquick-positioning-anchors.html#changing-anchors
         states: [
             State {
-                when: menuItem.isTall && !menuItem.shouldUseOverflowButton
-                AnchorChanges {
-                    target: toolButtonsLoader
-                    anchors.top: toolButtonsLoader.parent.top
-                    anchors.verticalCenter: undefined
-                }
-            },
-            State {
                 when: menuItem.shouldUseOverflowButton
                 AnchorChanges {
                     target: toolButtonsLoader
@@ -267,4 +297,6 @@ PlasmaComponents.ItemDelegate {
             }
         }
     }
+
+
 }
