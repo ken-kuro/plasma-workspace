@@ -152,119 +152,81 @@ PlasmaComponents3.ScrollView {
     property PlasmaExtras.PlasmoidHeading header: PlasmaExtras.PlasmoidHeading {
         focus: true
 
-        contentItem: RowLayout {
+        contentItem: ColumnLayout {
             enabled: menuListView.count > 0 || filter.text.length > 0
+            spacing: Kirigami.Units.smallSpacing
 
-            PlasmaExtras.SearchField {
-                id: filter
-                Layout.fillWidth: true
+            RowLayout {
+                PlasmaExtras.SearchField {
+                    id: filter
+                    Layout.fillWidth: true
 
-                // reset focus when popup becomes visible so down arrow always moves to first entry
-                focus: (clipboardMenu.Window.window?.visible && !Kirigami.InputMethod.willShowOnActive) ?? false
+                    // reset focus when popup becomes visible so down arrow always moves to first entry
+                    focus: (clipboardMenu.Window.window?.visible && !Kirigami.InputMethod.willShowOnActive) ?? false
 
-                KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
-                KeyNavigation.down: menuListView.count > 0 ? menuListView : null
-                KeyNavigation.right: starredOnlyButton.visible ? starredOnlyButton : (prioritizeStarredButton.visible ? prioritizeStarredButton : (clearHistoryButton.visible ? clearHistoryButton : null))
-                Keys.onDownPressed: event => {
-                    clipboardMenu.view.incrementCurrentIndex();
-                    menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
-                    event.accepted = false;
-                }
-                Keys.onEnterPressed: event => Keys.returnPressed(event)
-                Keys.onReturnPressed: event => {
-                    if (menuListView.currentItem !== null) {
-                        menuListView.currentItem.Keys.returnPressed(event);
-                    } else if (menuListView.count > 0) {
-                        menuListView.itemAtIndex(0).Keys.returnPressed(event);
-                    } else {
-                        event.accepted = false;
-                    }
-                }
-            }
-
-            PlasmaComponents3.ToolButton {
-                id: starredOnlyButton
-                visible: true // Always visible or based on some condition?
-                checkable: true
-                checked: clipboardMenu.model.starredOnly
-                onCheckedChanged: clipboardMenu.model.starredOnly = checked
-
-                icon.name: "view-filter-symbolic" // Use appropriate icon
-                display: PlasmaComponents3.AbstractButton.IconOnly
-                text: i18nd("klipper", "Show Only Starred Items")
-
-                KeyNavigation.left: filter
-                KeyNavigation.right: prioritizeStarredButton.visible ? prioritizeStarredButton : clearHistoryButton.visible ? clearHistoryButton : null
-                // Add Keys.onDownPressed similar to clearHistoryButton if needed
-                Keys.onDownPressed: {
-                    if (menuListView.count > 0) {
-                        clipboardMenu.view.currentIndex = 0; // Go to first item
-                        menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
-                        menuListView.forceActiveFocus(Qt.TabFocusReason)
-                        KeyNavigation.preventDefault() // Prevent default navigation
-                    }
-                }
-
-
-                PlasmaComponents3.ToolTip {
-                    text: starredOnlyButton.text
-                }
-            }
-
-            PlasmaComponents3.ToolButton {
-                id: prioritizeStarredButton
-                visible: true // Always visible or based on some condition?
-                checkable: true
-                checked: clipboardMenu.model.starredPrioritized
-                onCheckedChanged: clipboardMenu.model.starredPrioritized = checked
-
-                icon.name: "view-sort-symbolic" // Or another suitable icon
-                display: PlasmaComponents3.AbstractButton.IconOnly
-                text: i18nd("klipper", "Prioritize Starred Items")
-
-                KeyNavigation.left: starredOnlyButton
-                KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : null
-                // Add Keys.onDownPressed similar to clearHistoryButton if needed
-                Keys.onDownPressed: {
-                    if (menuListView.count > 0) {
-                        clipboardMenu.view.currentIndex = 0; // Go to first item
-                        menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
-                        menuListView.forceActiveFocus(Qt.TabFocusReason)
-                        KeyNavigation.preventDefault() // Prevent default navigation
-                    }
-                }
-
-                PlasmaComponents3.ToolTip {
-                    text: prioritizeStarredButton.text
-                }
-            }
-
-
-            PlasmaComponents3.ToolButton {
-                id: clearHistoryButton
-                visible: clipboardMenu.showsClearHistoryButton
-
-                icon.name: "edit-clear-history"
-
-                display: PlasmaComponents3.AbstractButton.IconOnly
-                text: i18nd("klipper", "Clear History")
-
-                KeyNavigation.left: prioritizeStarredButton.visible ? prioritizeStarredButton : starredOnlyButton
-                Keys.onDownPressed: { // can't KeyNavigation or Up from the ListView goes here
-                    if (menuListView.count > 0) {
+                    KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
+                    KeyNavigation.down: menuListView.count > 0 ? menuListView : null
+                    KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : null
+                    Keys.onDownPressed: event => {
                         clipboardMenu.view.incrementCurrentIndex();
                         menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
-                        menuListView.forceActiveFocus(Qt.TabFocusReason)
+                        event.accepted = false;
+                    }
+                    Keys.onEnterPressed: event => Keys.returnPressed(event)
+                    Keys.onReturnPressed: event => {
+                        if (menuListView.currentItem !== null) {
+                            menuListView.currentItem.Keys.returnPressed(event);
+                        } else if (menuListView.count > 0) {
+                            menuListView.itemAtIndex(0).Keys.returnPressed(event);
+                        } else {
+                            event.accepted = false;
+                        }
                     }
                 }
 
-                onClicked: {
-                    clipboardMenu.model.clearHistory();
-                    filter.clear();
+                PlasmaComponents3.ToolButton {
+                    id: clearHistoryButton
+                    visible: clipboardMenu.showsClearHistoryButton
+
+                    icon.name: "edit-clear-history"
+
+                    display: PlasmaComponents3.AbstractButton.IconOnly
+                    text: i18nd("klipper", "Clear History")
+
+                    KeyNavigation.left: filter
+                    Keys.onDownPressed: { // can't KeyNavigation or Up from the ListView goes here
+                        if (menuListView.count > 0) {
+                            clipboardMenu.view.incrementCurrentIndex();
+                            menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
+                            menuListView.forceActiveFocus(Qt.TabFocusReason)
+                        }
+                    }
+
+                    onClicked: {
+                        clipboardMenu.model.clearHistory();
+                        filter.clear();
+                    }
+
+                    PlasmaComponents3.ToolTip {
+                        text: clearHistoryButton.text
+                    }
+                }
+            }
+
+            PlasmaComponents3.TabBar {
+                id: tabBar
+                Layout.fillWidth: true
+
+                PlasmaComponents3.TabButton {
+                    text: i18nd("klipper", "All History")
+                    onClicked: clipboardMenu.model.starredOnly = false
+                    checked: !clipboardMenu.model.starredOnly
                 }
 
-                PlasmaComponents3.ToolTip {
-                    text: clearHistoryButton.text
+                PlasmaComponents3.TabButton {
+                    text: i18nd("klipper", "Starred Only")
+                    onClicked: clipboardMenu.model.starredOnly = true
+                    checked: clipboardMenu.model.starredOnly
                 }
             }
         }
@@ -277,6 +239,7 @@ PlasmaComponents3.ScrollView {
         visible: false
     }
 
+    // TODO: Deal with this magic string roleValue here, should be enum from historyitem.h
     DelegateChooser {
         id: chooser
         role: "type"
@@ -311,15 +274,6 @@ PlasmaComponents3.ScrollView {
             sourceModel: clipboardMenu.model
             filterRoleName: "display"
             filterRegularExpression: RegExp(filter.text, "i")
-        }
-
-        // Section support for visual grouping
-        section.property: "section"
-        section.criteria: ViewSection.FullString
-        section.delegate: Kirigami.ListSectionHeader {
-            required property string section
-            width: menuListView.width
-            text: section
         }
 
         topMargin: Kirigami.Units.largeSpacing
