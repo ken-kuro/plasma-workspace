@@ -36,28 +36,7 @@ PlasmaComponents.ItemDelegate {
     property alias mainItem: label.contentItem
 
     property int maximumNumberOfPreviews: Math.floor(width / (Kirigami.Units.gridUnit * 4 + Kirigami.Units.smallSpacing))
-    readonly property real gradientThreshold: {
-        // Enhanced safety checks to prevent any undefined/NaN values
-        if (!label || !toolButtonsLoader) {
-            return 1.0;
-        }
-        
-        const labelWidth = label.width || 0;
-        const toolButtonsWidth = toolButtonsLoader.width || 0;
-        
-        if (labelWidth <= 0 || isNaN(toolButtonsWidth) || !isFinite(toolButtonsWidth)) {
-            return 1.0;
-        }
-        
-        const result = (labelWidth - toolButtonsWidth) / labelWidth;
-        
-        // Ensure result is always a valid number between 0 and 1
-        if (!isFinite(result) || isNaN(result)) {
-            return 1.0;
-        }
-        
-        return Math.max(0, Math.min(1, result));
-    }
+    readonly property real gradientThreshold: (label.width - toolButtonsLoader.width) / label.width
     // Consider tall to be > about 1.5x the default height for purposes of top-aligning
     // the buttons to preserve Fitts' Law when deleting multiple items in a row,
     // or else the top-alignment doesn't look deliberate enough and people will think
@@ -138,8 +117,8 @@ PlasmaComponents.ItemDelegate {
 
             gradient: Gradient {
                 GradientStop { position: 0.0; color: "white" }
-                GradientStop { position: Math.max(0, gradientThreshold - 0.25); color: "white"}
-                GradientStop { position: gradientThreshold; color: "transparent"}
+                GradientStop { position: Math.max(0, (gradientThreshold ?? 1.0) - 0.25); color: "white"}
+                GradientStop { position: gradientThreshold ?? 1.0; color: "transparent"}
                 GradientStop { position: 1; color: "transparent"}
             }
         }
