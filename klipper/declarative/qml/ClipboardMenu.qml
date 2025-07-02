@@ -69,14 +69,13 @@ PlasmaComponents3.ScrollView {
 
     Keys.forwardTo: [clipboardMenu.T.StackView.view.currentItem]
     Keys.onPressed: event => {
-        if (menuListView.count === 0 || clipboardMenu.T.StackView.view.currentItem !== clipboardMenu) {
+        if (clipboardMenu.T.StackView.view.currentItem !== clipboardMenu) {
             event.accepted = false;
             return;
         }
 
         function forwardToFilter() {
             if (filter.enabled && event.text !== "" && !filter.activeFocus) {
-                clipboardMenu.view.currentIndex = -1
                 if (event.matches(StandardKey.Paste)) {
                     filter.paste();
                 } else {
@@ -108,50 +107,100 @@ PlasmaComponents3.ScrollView {
         }
         case Qt.Key_Tab:
         case Qt.Key_Backtab: {
-            // prevent search filter from getting Tab key events
+            // Let natural KeyNavigation handle Tab/Backtab
+            event.accepted = false;
             break;
         }
         case Qt.Key_Backspace: {
             // filter.text += event.text wil break if the key is backspace
-            filter.forceActiveFocus();
-            filter.text = filter.text.slice(0, -1);
-            event.accepted = true;
+            if (!filter.activeFocus) {
+                // Forward backspace to filter when not focused
+                filter.forceActiveFocus();
+                filter.text = filter.text.slice(0, -1);
+                event.accepted = true;
+            } else {
+                // Filter is focused, let the SearchField handle it natively
+                event.accepted = false;
+            }
             break;
         }
         case Qt.Key_Home: {
-            menuListView.currentIndex = 0;
-            event.accepted = true;
+            if (menuListView.count > 0) {
+                menuListView.currentIndex = 0;
+                event.accepted = true;
+            } else {
+                event.accepted = false;
+            }
             break;
         }
         case Qt.Key_End: {
-            menuListView.currentIndex = menuListView.count - 1;
-            event.accepted = true;
+            if (menuListView.count > 0) {
+                menuListView.currentIndex = menuListView.count - 1;
+                event.accepted = true;
+            } else {
+                event.accepted = false;
+            }
             break;
         }
         case Qt.Key_PageUp: {
-            menuListView.currentIndex = Math.max(menuListView.currentIndex - pageUpPageDownSkipCount, 0);
-            menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Beginning)
-            menuListView.currentItem.forceActiveFocus()
-            event.accepted = true;
+            if (event.modifiers & Qt.ControlModifier) {
+                // Ctrl+PgUp: Previous tab
+                tabBar.setCurrentIndex(Math.max(0, tabBar.currentIndex - 1));
+                event.accepted = true;
+            } else if (menuListView.count > 0) {
+                // Regular PgUp: Navigate list
+                menuListView.currentIndex = Math.max(menuListView.currentIndex - pageUpPageDownSkipCount, 0);
+                menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Beginning)
+                if (menuListView.currentItem) {
+                    menuListView.currentItem.forceActiveFocus()
+                }
+                event.accepted = true;
+            }
             break;
         }
         case Qt.Key_PageDown: {
-            menuListView.currentIndex = Math.min(menuListView.currentIndex + pageUpPageDownSkipCount, menuListView.count - 1);
-            menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Beginning)
-            menuListView.currentItem.forceActiveFocus()
-            event.accepted = true;
+            if (event.modifiers & Qt.ControlModifier) {
+                // Ctrl+PgDn: Next tab
+                tabBar.setCurrentIndex(Math.min(tabBar.count - 1, tabBar.currentIndex + 1));
+                event.accepted = true;
+            } else if (menuListView.count > 0) {
+                // Regular PgDn: Navigate list
+                menuListView.currentIndex = Math.min(menuListView.currentIndex + pageUpPageDownSkipCount, menuListView.count - 1);
+                menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Beginning)
+                if (menuListView.currentItem) {
+                    menuListView.currentItem.forceActiveFocus()
+                }
+                event.accepted = true;
+            }
+            break;
+        }
+        case Qt.Key_1:
+        case Qt.Key_2: {
+            if (event.modifiers & Qt.AltModifier) {
+                // Alt+1/Alt+2: Switch to specific tab
+                const tabIndex = event.key - Qt.Key_1;
+                if (tabIndex < tabBar.count) {
+                    tabBar.setCurrentIndex(tabIndex);
+                    event.accepted = true;
+                }
+            } else {
+                forwardToFilter();
+            }
             break;
         }
         default: {
-            forwardToFilter();
+            // Only forward printable characters to filter
+            if (event.text.length > 0 && event.text.charCodeAt(0) >= 32) {
+                forwardToFilter();
+            } else {
+                event.accepted = false;
+            }
             break;
         }
         }
     }
 
     property PlasmaExtras.PlasmoidHeading header: PlasmaExtras.PlasmoidHeading {
-        focus: true
-
         contentItem: ColumnLayout {
             enabled: menuListView.count > 0 || filter.text.length > 0
             spacing: Kirigami.Units.smallSpacing
@@ -165,13 +214,8 @@ PlasmaComponents3.ScrollView {
                     focus: (clipboardMenu.Window.window?.visible && !Kirigami.InputMethod.willShowOnActive) ?? false
 
                     KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
-                    KeyNavigation.down: menuListView.count > 0 ? menuListView : null
+                    KeyNavigation.down: tabBar
                     KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : null
-                    Keys.onDownPressed: event => {
-                        clipboardMenu.view.incrementCurrentIndex();
-                        menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
-                        event.accepted = false;
-                    }
                     Keys.onEnterPressed: event => Keys.returnPressed(event)
                     Keys.onReturnPressed: event => {
                         if (menuListView.currentItem !== null) {
@@ -194,13 +238,7 @@ PlasmaComponents3.ScrollView {
                     text: i18nd("klipper", "Clear History")
 
                     KeyNavigation.left: filter
-                    Keys.onDownPressed: { // can't KeyNavigation or Up from the ListView goes here
-                        if (menuListView.count > 0) {
-                            clipboardMenu.view.incrementCurrentIndex();
-                            menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
-                            menuListView.forceActiveFocus(Qt.TabFocusReason)
-                        }
-                    }
+                    KeyNavigation.down: tabBar
 
                     onClicked: {
                         clipboardMenu.model.clearHistory();
@@ -216,17 +254,28 @@ PlasmaComponents3.ScrollView {
             PlasmaComponents3.TabBar {
                 id: tabBar
                 Layout.fillWidth: true
+                
+                // TabBar focus handling
+                activeFocusOnTab: true
+                KeyNavigation.up: clearHistoryButton.visible ? clearHistoryButton : filter
+                KeyNavigation.down: menuListView
+                
+                // Proper currentIndex binding for tab switching
+                currentIndex: clipboardMenu.model.starredOnly ? 1 : 0
+                onCurrentIndexChanged: {
+                    clipboardMenu.model.starredOnly = (currentIndex === 1)
+                    // Ensure current item is visible when switching tabs
+                    if (menuListView.count > 0) {
+                        menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Contain)
+                    }
+                }
 
                 PlasmaComponents3.TabButton {
                     text: i18nd("klipper", "All History")
-                    onClicked: clipboardMenu.model.starredOnly = false
-                    checked: !clipboardMenu.model.starredOnly
                 }
 
                 PlasmaComponents3.TabButton {
                     text: i18nd("klipper", "Starred Only")
-                    onClicked: clipboardMenu.model.starredOnly = true
-                    checked: clipboardMenu.model.starredOnly
                 }
             }
         }
@@ -270,6 +319,9 @@ PlasmaComponents3.ScrollView {
 
         highlightFollowsCurrentItem: false
         currentIndex: 0
+        
+        // ListView KeyNavigation for when no items have focus
+        KeyNavigation.up: tabBar
         model: KItemModels.KSortFilterProxyModel {
             sourceModel: clipboardMenu.model
             filterRoleName: "display"
@@ -288,22 +340,23 @@ PlasmaComponents3.ScrollView {
 
         Keys.onUpPressed: event => {
             if (menuListView.currentIndex === 0) {
-                menuListView.currentIndex = -1;
-                filter.selectAll();
-                event.accepted = false; // Forward to KeyNavigation.up
-
+                // At top of list, use KeyNavigation to go to tabBar
+                event.accepted = false; // Let KeyNavigation handle it
             } else {
                 menuListView.decrementCurrentIndex()
                 menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
+                event.accepted = true;
             }
         }
 
         Keys.onDownPressed: event => {
-            if (menuListView.currentIndex >= menuListView.count) {
-                event.accepted = false; // no target, but we may add one in the future
-            } else {
+            if (menuListView.currentIndex < menuListView.count - 1) {
                 menuListView.incrementCurrentIndex()
                 menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
+                event.accepted = true;
+            } else {
+                // At bottom of list, stay here
+                event.accepted = true;
             }
         }
 
