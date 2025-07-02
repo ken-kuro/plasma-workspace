@@ -215,7 +215,7 @@ PlasmaComponents3.ScrollView {
 
                     KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
                     KeyNavigation.down: tabBar
-                    KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : null
+                    KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : tabBar
                     Keys.onEnterPressed: event => Keys.returnPressed(event)
                     Keys.onReturnPressed: event => {
                         if (menuListView.currentItem !== null) {
@@ -239,6 +239,7 @@ PlasmaComponents3.ScrollView {
 
                     KeyNavigation.left: filter
                     KeyNavigation.down: tabBar
+                    KeyNavigation.up: filter
 
                     onClicked: {
                         clipboardMenu.model.clearHistory();
@@ -257,7 +258,7 @@ PlasmaComponents3.ScrollView {
                 
                 // TabBar focus handling
                 activeFocusOnTab: true
-                KeyNavigation.up: clearHistoryButton.visible ? clearHistoryButton : filter
+                KeyNavigation.up: filter  // Always go to filter, simpler and more predictable, cause Meta+V and system panel Applets layout is different
                 KeyNavigation.down: menuListView
                 
                 // Proper currentIndex binding for tab switching
@@ -319,6 +320,7 @@ PlasmaComponents3.ScrollView {
 
         highlightFollowsCurrentItem: false
         currentIndex: 0
+        focus: true  // Ensure ListView can receive focus initially
         
         // ListView KeyNavigation for when no items have focus
         KeyNavigation.up: tabBar
