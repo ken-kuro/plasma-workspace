@@ -175,14 +175,23 @@ PlasmaComponents.ItemDelegate {
         display: PlasmaComponents.AbstractButton.IconOnly
         icon.name: {
             const isStarred = menuItem.model?.starred ?? false;
+
+            if (isStarred) {
+                return "starred-symbolic";
+            } else {
+                return "non-starred-symbolic";
+            }
+        }
+        icon.color: {
+            const isStarred = menuItem.model?.starred ?? false;
             const itemIsHoveredOrFocused = menuItem.hovered || menuItem.ListView.isCurrentItem;
             
             if (isStarred) {
-                return "starred-symbolic";
+                return "#FFD700"; // Yellow fill for starred items
             } else if (itemIsHoveredOrFocused) {
-                return "new-star-symbolic";
+                return Kirigami.Theme.textColor; // Black border for current/hovered items
             } else {
-                return "non-starred-symbolic";
+                return Kirigami.Theme.disabledTextColor; // Gray border for normal items
             }
         }
         text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star")
@@ -194,7 +203,7 @@ PlasmaComponents.ItemDelegate {
         
         // Only allow focus when this item is the current item
         activeFocusOnTab: menuItem.ListView.isCurrentItem
-        enabled: menuItem.ListView.isCurrentItem || hovered
+        enabled: (menuItem.model?.starred ?? false) || menuItem.ListView.isCurrentItem || hovered
         
         KeyNavigation.right: toolButtonsLoader.active ? toolButtonsLoader.item.defaultButton : toolButtonsLoader
         
