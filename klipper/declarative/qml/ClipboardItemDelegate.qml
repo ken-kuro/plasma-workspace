@@ -187,7 +187,7 @@ PlasmaComponents.ItemDelegate {
             const itemIsHoveredOrFocused = menuItem.hovered || menuItem.ListView.isCurrentItem;
             
             if (isStarred) {
-                return "#FFD700"; // Yellow fill for starred items
+                return Kirigami.Theme.highlightColor; // Use highlight color for starred items
             } else if (itemIsHoveredOrFocused) {
                 return Kirigami.Theme.textColor; // Black border for current/hovered items
             } else {
