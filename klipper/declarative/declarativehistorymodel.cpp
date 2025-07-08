@@ -19,6 +19,31 @@ DeclarativeHistoryModel::DeclarativeHistoryModel(QObject *parent)
     connect(this, &QSortFilterProxyModel::rowsRemoved, this, &DeclarativeHistoryModel::countChanged);
     connect(this, &QSortFilterProxyModel::modelReset, this, &DeclarativeHistoryModel::countChanged);
     connect(m_model.get(), &HistoryModel::changed, this, &DeclarativeHistoryModel::currentTextChanged);
+    
+    // Invalidate filter when source model changes to ensure starred-only view updates correctly
+    // Use more targeted invalidation to avoid performance issues with large histories
+    connect(m_model.get(), &HistoryModel::rowsInserted, this, [this](const QModelIndex &parent, int first, int last) {
+        Q_UNUSED(parent)
+        if (m_starredOnly) {
+            // Only invalidate if we're in starred-only mode and items were inserted at the top
+            if (first == 0) {
+                invalidateRowsFilter();
+            }
+        }
+    });
+    connect(m_model.get(), &HistoryModel::rowsMoved, this, [this](const QModelIndex &, int sourceStart, int, const QModelIndex &, int destStart) {
+        if (m_starredOnly && (sourceStart == 0 || destStart == 0)) {
+            // Only invalidate if the current item (row 0) is involved in the move
+            invalidateRowsFilter();
+        }
+    });
+    connect(m_model.get(), &HistoryModel::rowsRemoved, this, [this](const QModelIndex &parent, int first, int last) {
+        Q_UNUSED(parent)
+        if (m_starredOnly && first == 0) {
+            // Only invalidate if the current item was removed
+            invalidateRowsFilter();
+        }
+    });
 }
 
 DeclarativeHistoryModel::~DeclarativeHistoryModel()
