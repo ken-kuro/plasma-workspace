@@ -268,10 +268,24 @@ PlasmaComponents3.ScrollView {
 
                 PlasmaComponents3.TabButton {
                     text: i18nd("klipper", "All History")
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.color: Kirigami.Theme.focusColor
+                        border.width: 2
+                        visible: parent.activeFocus
+                    }
                 }
 
                 PlasmaComponents3.TabButton {
                     text: i18nd("klipper", "Starred Only")
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.color: Kirigami.Theme.focusColor
+                        border.width: 2
+                        visible: parent.activeFocus
+                    }
                 }
             }
         }
