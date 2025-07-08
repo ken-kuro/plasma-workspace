@@ -193,6 +193,8 @@ PlasmaComponents.ItemDelegate {
             } else {
                 return Kirigami.Theme.disabledTextColor; // Gray border for normal items
             }
+            // TODO: Improve accessibility by adding additional visual indicators beyond color
+            // Users with color vision deficiencies might not distinguish starred vs unstarred states
         }
         text: (menuItem.model?.starred ?? false) ? i18nd("klipper", "Remove Star") : i18nd("klipper", "Star")
         visible: true
