@@ -493,6 +493,8 @@ bool HistoryModel::setData(const QModelIndex &index, const QVariant &value, int 
             Q_EMIT dataChanged(index, index, {StarredRole});
             return true;
         }
+        // TODO: Add user feedback/notification when starring/unstarring fails
+        // Currently users have no indication if the star operation was unsuccessful
         break;
     }
     }
