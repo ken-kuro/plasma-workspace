@@ -67,6 +67,12 @@ PlasmaComponents3.ScrollView {
     }
     onTriggerAction: uuid => model.invokeAction(uuid)
 
+    onExpandedChanged: {
+        if (expanded) {
+            menuListView.forceActiveFocus();
+        }
+    }
+
     Keys.forwardTo: [clipboardMenu.T.StackView.view.currentItem]
     Keys.onPressed: event => {
         if (clipboardMenu.T.StackView.view.currentItem !== clipboardMenu) {
@@ -210,8 +216,11 @@ PlasmaComponents3.ScrollView {
                     id: filter
                     Layout.fillWidth: true
                     KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
-                    KeyNavigation.down: tabBar
                     KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : tabBar
+                    Keys.onDownPressed: event => {
+                        tabBar.forceActiveFocus();
+                        event.accepted = true;
+                    }
                     Keys.onEnterPressed: event => Keys.returnPressed(event)
                     Keys.onReturnPressed: event => {
                         if (menuListView.currentItem !== null) {
@@ -253,8 +262,26 @@ PlasmaComponents3.ScrollView {
                 
                 // TabBar focus handling
                 activeFocusOnTab: true
-                KeyNavigation.up: filter  // Always go to filter, simpler and more predictable, cause Meta+V and system panel Applets layout is different
-                KeyNavigation.down: menuListView
+                Keys.onUpPressed: event => {
+                    filter.forceActiveFocus();
+                    event.accepted = true;
+                }
+                Keys.onDownPressed: event => {
+                    menuListView.forceActiveFocus();
+                    event.accepted = true;
+                }
+                Keys.onLeftPressed: event => {
+                    if (tabBar.currentIndex > 0) {
+                        tabBar.currentIndex--;
+                    }
+                    event.accepted = true;
+                }
+                Keys.onRightPressed: event => {
+                    if (tabBar.currentIndex < tabBar.count - 1) {
+                        tabBar.currentIndex++;
+                    }
+                    event.accepted = true;
+                }
                 
                 // Proper currentIndex binding for tab switching
                 currentIndex: clipboardMenu.model.starredOnly ? 1 : 0
@@ -273,7 +300,7 @@ PlasmaComponents3.ScrollView {
                         color: "transparent"
                         border.color: Kirigami.Theme.focusColor
                         border.width: 2
-                        visible: parent.activeFocus
+                        visible: tabBar.activeFocus && tabBar.currentIndex == 0
                     }
                 }
 
@@ -284,7 +311,7 @@ PlasmaComponents3.ScrollView {
                         color: "transparent"
                         border.color: Kirigami.Theme.focusColor
                         border.width: 2
-                        visible: parent.activeFocus
+                        visible: tabBar.activeFocus && tabBar.currentIndex == 1
                     }
                 }
             }
@@ -331,7 +358,6 @@ PlasmaComponents3.ScrollView {
         currentIndex: 0
         
         // ListView KeyNavigation for when no items have focus
-        KeyNavigation.up: tabBar
         KeyNavigation.left: tabBar
 
         model: KItemModels.KSortFilterProxyModel {
@@ -351,24 +377,26 @@ PlasmaComponents3.ScrollView {
         delegate: chooser
 
         Keys.onUpPressed: event => {
-            if (menuListView.currentIndex === 0) {
-                // At top of list, use KeyNavigation to go to tabBar
-                event.accepted = false; // Let KeyNavigation handle it
+            if (menuListView.currentIndex > 0) {
+                menuListView.decrementCurrentIndex();
+                menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible);
+                event.accepted = true;
             } else {
-                menuListView.decrementCurrentIndex()
-                menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
+                // At top of list, or list is empty. Manually focus tabBar.
+                tabBar.forceActiveFocus();
                 event.accepted = true;
             }
         }
 
         Keys.onDownPressed: event => {
             if (menuListView.currentIndex < menuListView.count - 1) {
-                menuListView.incrementCurrentIndex()
-                menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible)
+                menuListView.incrementCurrentIndex();
+                menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible);
                 event.accepted = true;
             } else {
-                // At bottom of list, stay here
-                event.accepted = true;
+                // At bottom of list, or list is empty.
+                // If list is not empty, stay here. If empty, let nav happen.
+                event.accepted = menuListView.count > 0;
             }
         }
 
