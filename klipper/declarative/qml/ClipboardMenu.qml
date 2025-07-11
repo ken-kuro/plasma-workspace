@@ -259,6 +259,7 @@ PlasmaComponents3.ScrollView {
             PlasmaComponents3.TabBar {
                 id: tabBar
                 Layout.fillWidth: true
+                Layout.bottomMargin: -Kirigami.Units.smallSpacing  // Connect tab highlights to content below (standard KDE pattern)
                 
                 // TabBar focus handling
                 activeFocusOnTab: true
@@ -295,6 +296,8 @@ PlasmaComponents3.ScrollView {
 
                 PlasmaComponents3.TabButton {
                     text: i18nd("klipper", "All History")
+                    // TODO: Remove custom focus rectangles - should be handled by default TabButton style
+                    /*
                     Rectangle {
                         anchors.fill: parent
                         color: "transparent"
@@ -302,10 +305,13 @@ PlasmaComponents3.ScrollView {
                         border.width: 2
                         visible: tabBar.activeFocus && tabBar.currentIndex == 0
                     }
+                    */
                 }
 
                 PlasmaComponents3.TabButton {
                     text: i18nd("klipper", "Starred Only")
+                    // TODO: Remove custom focus rectangles - should be handled by default TabButton style
+                    /*
                     Rectangle {
                         anchors.fill: parent
                         color: "transparent"
@@ -313,6 +319,7 @@ PlasmaComponents3.ScrollView {
                         border.width: 2
                         visible: tabBar.activeFocus && tabBar.currentIndex == 1
                     }
+                    */
                 }
             }
         }
