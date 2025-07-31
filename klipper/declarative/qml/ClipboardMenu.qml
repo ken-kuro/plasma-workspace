@@ -208,13 +208,13 @@ PlasmaComponents3.ScrollView {
 
     property PlasmaExtras.PlasmoidHeading header: PlasmaExtras.PlasmoidHeading {
         contentItem: ColumnLayout {
-            enabled: menuListView.count > 0 || filter.text.length > 0
             spacing: Kirigami.Units.smallSpacing
 
             RowLayout {
                 PlasmaExtras.SearchField {
                     id: filter
                     Layout.fillWidth: true
+                    enabled: menuListView.count > 0
                     KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
                     KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : tabBar
                     Keys.onDownPressed: event => {

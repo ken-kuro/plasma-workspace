@@ -18,12 +18,19 @@ DeclarativeHistoryModel::DeclarativeHistoryModel(QObject *parent)
     connect(this, &QSortFilterProxyModel::rowsInserted, this, &DeclarativeHistoryModel::countChanged);
     connect(this, &QSortFilterProxyModel::rowsRemoved, this, &DeclarativeHistoryModel::countChanged);
     connect(this, &QSortFilterProxyModel::modelReset, this, &DeclarativeHistoryModel::countChanged);
+    
+    // Connect source model changes to sourceCountChanged signal
+    connect(m_model.get(), &HistoryModel::rowsInserted, this, &DeclarativeHistoryModel::sourceCountChanged);
+    connect(m_model.get(), &HistoryModel::rowsRemoved, this, &DeclarativeHistoryModel::sourceCountChanged);
+    connect(m_model.get(), &HistoryModel::modelReset, this, &DeclarativeHistoryModel::sourceCountChanged);
+    
     connect(m_model.get(), &HistoryModel::changed, this, &DeclarativeHistoryModel::currentTextChanged);
     
     // Invalidate filter when source model changes to ensure starred-only view updates correctly
     // Use more targeted invalidation to avoid performance issues with large histories
     connect(m_model.get(), &HistoryModel::rowsInserted, this, [this](const QModelIndex &parent, int first, int last) {
         Q_UNUSED(parent)
+        Q_UNUSED(last)
         if (m_starredOnly) {
             // Only invalidate if we're in starred-only mode and items were inserted at the top
             if (first == 0) {
@@ -39,6 +46,7 @@ DeclarativeHistoryModel::DeclarativeHistoryModel(QObject *parent)
     });
     connect(m_model.get(), &HistoryModel::rowsRemoved, this, [this](const QModelIndex &parent, int first, int last) {
         Q_UNUSED(parent)
+        Q_UNUSED(last)
         if (m_starredOnly && first == 0) {
             // Only invalidate if the current item was removed
             invalidateRowsFilter();
@@ -53,6 +61,11 @@ DeclarativeHistoryModel::~DeclarativeHistoryModel()
 QString DeclarativeHistoryModel::currentText() const
 {
     return m_model->rowCount() == 0 ? QString() : m_model->index(0).data(Qt::DisplayRole).toString();
+}
+
+int DeclarativeHistoryModel::sourceCount() const
+{
+    return m_model->rowCount();
 }
 
 bool DeclarativeHistoryModel::starredOnly() const
@@ -95,11 +108,6 @@ void DeclarativeHistoryModel::invokeAction(const QString &uuid)
 bool DeclarativeHistoryModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
 {
     if (m_starredOnly) {
-        // Always show the current clipboard item (row 0) to prevent UI lockout
-        if (sourceRow == 0) {
-            return true;
-        }
-        
         // Safety check: ensure we have a valid source model and row
         if (!sourceModel() || sourceRow < 0 || sourceRow >= sourceModel()->rowCount(sourceParent)) {
             return false;
