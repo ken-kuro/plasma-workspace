@@ -288,9 +288,10 @@ PlasmaComponents3.ScrollView {
                 currentIndex: clipboardMenu.model.starredOnly ? 1 : 0
                 onCurrentIndexChanged: {
                     clipboardMenu.model.starredOnly = (currentIndex === 1)
-                    // Ensure current item is visible when switching tabs
+                    // Reset selection to first item when switching tabs
                     if (menuListView.count > 0) {
-                        menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Contain)
+                        menuListView.currentIndex = 0;
+                        menuListView.positionViewAtBeginning();
                     }
                 }
 
