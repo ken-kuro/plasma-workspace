@@ -214,11 +214,15 @@ PlasmaComponents3.ScrollView {
                 PlasmaExtras.SearchField {
                     id: filter
                     Layout.fillWidth: true
-                    enabled: menuListView.count > 0
+                    enabled: menuListView.count > 0 || filter.text.length > 0
                     KeyNavigation.up: clipboardMenu.dialogItem.KeyNavigation.up /* ToolBar */
-                    KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : tabBar
+                    KeyNavigation.right: clearHistoryButton.visible ? clearHistoryButton : (tabBar.visible ? tabBar : null)
                     Keys.onDownPressed: event => {
-                        tabBar.forceActiveFocus();
+                        if (tabBar.visible) {
+                            tabBar.forceActiveFocus();
+                        } else {
+                            menuListView.forceActiveFocus();
+                        }
                         event.accepted = true;
                     }
                     Keys.onEnterPressed: event => Keys.returnPressed(event)
@@ -243,7 +247,7 @@ PlasmaComponents3.ScrollView {
                     text: i18nd("klipper", "Clear History")
 
                     KeyNavigation.left: filter
-                    KeyNavigation.down: tabBar
+                    KeyNavigation.down: tabBar.visible ? tabBar : menuListView
 
                     onClicked: {
                         clipboardMenu.model.clearHistory();
@@ -260,6 +264,7 @@ PlasmaComponents3.ScrollView {
                 id: tabBar
                 Layout.fillWidth: true
                 Layout.bottomMargin: -Kirigami.Units.smallSpacing  // Connect tab highlights to content below (standard KDE pattern)
+                visible: clipboardMenu.model.hasStarredItems
                 
                 // TabBar focus handling
                 activeFocusOnTab: true
@@ -366,7 +371,7 @@ PlasmaComponents3.ScrollView {
         currentIndex: 0
         
         // ListView KeyNavigation for when no items have focus
-        KeyNavigation.left: tabBar
+        KeyNavigation.left: tabBar.visible ? tabBar : filter
 
         model: KItemModels.KSortFilterProxyModel {
             sourceModel: clipboardMenu.model
@@ -390,8 +395,12 @@ PlasmaComponents3.ScrollView {
                 menuListView.positionViewAtIndex(menuListView.currentIndex, ListView.Visible);
                 event.accepted = true;
             } else {
-                // At top of list, or list is empty. Manually focus tabBar.
-                tabBar.forceActiveFocus();
+                // At top of list, or list is empty. Focus TabBar or filter depending on visibility.
+                if (tabBar.visible) {
+                    tabBar.forceActiveFocus();
+                } else {
+                    filter.forceActiveFocus();
+                }
                 event.accepted = true;
             }
         }
