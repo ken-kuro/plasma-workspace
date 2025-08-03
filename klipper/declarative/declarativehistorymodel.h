@@ -21,6 +21,7 @@ class DeclarativeHistoryModel : public QSortFilterProxyModel
 
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
     Q_PROPERTY(int sourceCount READ sourceCount NOTIFY sourceCountChanged)
+    Q_PROPERTY(bool hasStarredItems READ hasStarredItems NOTIFY hasStarredItemsChanged)
     Q_PROPERTY(QString currentText READ currentText NOTIFY currentTextChanged)
 
     Q_PROPERTY(bool starredOnly READ starredOnly WRITE setStarredOnly NOTIFY starredOnlyChanged)
@@ -31,6 +32,7 @@ public:
 
     QString currentText() const;
     int sourceCount() const;
+    bool hasStarredItems() const;
 
     bool starredOnly() const;
     void setStarredOnly(bool value);
@@ -45,6 +47,7 @@ public:
 Q_SIGNALS:
     void countChanged();
     void sourceCountChanged();
+    void hasStarredItemsChanged();
     void currentTextChanged();
     void starredOnlyChanged();
 

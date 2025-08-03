@@ -24,6 +24,27 @@ DeclarativeHistoryModel::DeclarativeHistoryModel(QObject *parent)
     connect(m_model.get(), &HistoryModel::rowsRemoved, this, &DeclarativeHistoryModel::sourceCountChanged);
     connect(m_model.get(), &HistoryModel::modelReset, this, &DeclarativeHistoryModel::sourceCountChanged);
     
+    // Connect source model changes to hasStarredItemsChanged signal
+    connect(m_model.get(), &HistoryModel::rowsInserted, this, &DeclarativeHistoryModel::hasStarredItemsChanged);
+    connect(m_model.get(), &HistoryModel::rowsRemoved, this, &DeclarativeHistoryModel::hasStarredItemsChanged);
+    connect(m_model.get(), &HistoryModel::modelReset, this, &DeclarativeHistoryModel::hasStarredItemsChanged);
+    connect(m_model.get(), &HistoryModel::dataChanged, this, [this](const QModelIndex &topLeft, const QModelIndex &bottomRight, const QList<int> &roles) {
+        Q_UNUSED(topLeft)
+        Q_UNUSED(bottomRight)
+        if (roles.contains(HistoryModel::StarredRole)) {
+            Q_EMIT hasStarredItemsChanged();
+        }
+    });
+    
+    // Invalidate filter when hasStarredItems changes to ensure proper display
+    connect(this, &DeclarativeHistoryModel::hasStarredItemsChanged, this, [this]() {
+        // If there are no starred items and we're in starred-only mode, switch to all history
+        if (!hasStarredItems() && m_starredOnly) {
+            setStarredOnly(false);
+        }
+        invalidateRowsFilter();
+    });
+    
     connect(m_model.get(), &HistoryModel::changed, this, &DeclarativeHistoryModel::currentTextChanged);
     
     // Invalidate filter when source model changes to ensure starred-only view updates correctly
@@ -66,6 +87,21 @@ QString DeclarativeHistoryModel::currentText() const
 int DeclarativeHistoryModel::sourceCount() const
 {
     return m_model->rowCount();
+}
+
+bool DeclarativeHistoryModel::hasStarredItems() const
+{
+    // Check if any item in the source model is starred
+    for (int i = 0; i < m_model->rowCount(); ++i) {
+        QModelIndex sourceIndex = m_model->index(i, 0);
+        if (sourceIndex.isValid()) {
+            QVariant starredData = sourceIndex.data(HistoryModel::StarredRole);
+            if (starredData.isValid() && starredData.toBool()) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool DeclarativeHistoryModel::starredOnly() const
